@@ -12,11 +12,10 @@ class Settings(BaseSettings):
     debug: bool = False
     
     # Database
-    # Default uses the provided PostgreSQL server for testing/development
-    # In production, override via DATABASE_URL environment variable
-    database_url: str = "postgresql://postgres:changeme@119.9.118.12:30532/postgres"
+    # Must be set via DATABASE_URL environment variable in .env file
+    database_url: str
     
-    # For local SQLite (development only, not recommended for production)
+    # Example for local SQLite (development only, not recommended for production)
     # database_url: str = "sqlite:///./finance.db"
     
     # Security

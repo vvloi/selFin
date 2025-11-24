@@ -67,17 +67,49 @@ openapi/              # OpenAPI specification
 tests/                # Tests
 ```
 
-## Setup & Installation
+## Hướng Dẫn Chạy Dự Án (Setup & Installation)
 
-### 1. Install Dependencies
+### Bước 0: Tạo Virtual Environment (Khuyến nghị)
 
-```bash
-pip install -r requirements.txt
+```powershell
+# Tạo virtual environment
+python -m venv venv
+
+# Kích hoạt virtual environment
+# PowerShell:
+.\venv\Scripts\Activate.ps1
+
+# CMD:
+venv\Scripts\activate.bat
+
+# Linux/Mac:
+source venv/bin/activate
 ```
 
-### 2. Configure Environment
+**Lưu ý:** Luôn kích hoạt virtual environment trước khi cài đặt packages hoặc chạy dự án!
 
-Create a `.env` file:
+### Bước 1: Cài Đặt Dependencies
+
+```bash
+# Đảm bảo đã activate virtual environment (dòng prompt sẽ có (venv))
+# Cài đặt các package cần thiết
+pip install -r requirements.txt
+
+# Hoặc cài đặt bản dev (có thêm pytest để test)
+pip install -r requirements-dev.txt
+```
+
+**Nếu gặp lỗi "No module named pip":**
+```powershell
+# Download và cài pip
+Invoke-WebRequest -Uri https://bootstrap.pypa.io/get-pip.py -OutFile get-pip.py
+python get-pip.py
+Remove-Item get-pip.py
+```
+
+### Bước 2: Cấu Hình Environment
+
+Tạo file `.env` trong thư mục gốc của project:
 
 ```env
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/finance_db
@@ -85,30 +117,114 @@ SECRET_KEY=your-secret-key-change-this-in-production
 DEBUG=False
 ```
 
-### 3. Setup Database
+**Lưu ý:** Thay đổi `postgres:postgres` thành username và password PostgreSQL của bạn.
 
-Create PostgreSQL database:
+### Bước 3: Tạo Database
+
+Tạo database PostgreSQL:
 
 ```bash
-createdb finance_db
+# Sử dụng psql
+psql -U postgres
+CREATE DATABASE finance_db;
+\q
+
+# Hoặc sử dụng pgAdmin để tạo database với tên "finance_db"
 ```
 
-Run migrations:
+### Bước 4: Chạy Migration Database
 
 ```bash
+# Chạy migration để tạo các bảng trong database
 alembic upgrade head
 ```
 
-### 4. Run Application
+**Các lệnh migration hữu ích:**
 
 ```bash
-uvicorn app.main:app --reload
+# Tạo migration mới (khi thay đổi models)
+alembic revision --autogenerate -m "mô tả thay đổi"
+
+# Xem lịch sử migrations
+alembic history
+
+# Rollback migration gần nhất
+alembic downgrade -1
+
+# Rollback tất cả migrations (xóa hết bảng)
+alembic downgrade base
 ```
 
-The API will be available at `http://localhost:8000`
+### Bước 5: Tạo Controllers/Routers từ OpenAPI
 
-- API Documentation: `http://localhost:8000/docs`
-- OpenAPI Spec: `http://localhost:8000/openapi.json`
+**Dự án này đã có sẵn controllers/routers**, nhưng nếu bạn muốn tạo mới hoặc cập nhật từ OpenAPI spec:
+
+**Cách 1: Tạo thủ công theo pattern có sẵn**
+- OpenAPI spec: `openapi/finance-api.yaml`
+- Tham khảo các router có sẵn trong: `app/api/v1/routers/`
+- Mỗi router bao gồm:
+  - **Router file** (ví dụ: `auth_router.py`) - định nghĩa endpoints
+  - **Service** (`app/services/`) - business logic
+  - **Repository** (`app/repositories/`) - database operations
+  - **Schema** (`app/schemas/`) - Pydantic models cho request/response
+
+**Cách 2: Sử dụng code generator (nếu cần)**
+```bash
+# Cài đặt openapi-generator
+pip install openapi-generator-cli
+
+# Generate code từ OpenAPI spec
+openapi-generator generate -i openapi/finance-api.yaml -g python-fastapi -o generated/
+```
+
+**Pattern tạo router mới:**
+1. Tạo model trong `app/models/`
+2. Tạo schema trong `app/schemas/`
+3. Tạo repository trong `app/repositories/`
+4. Tạo service trong `app/services/`
+5. Tạo router trong `app/api/v1/routers/`
+6. Import router vào `app/main.py`
+
+### Bước 6: Khởi Chạy Dự Án
+
+```bash
+# Chạy ở chế độ development (auto reload)
+uvicorn app.main:app --reload
+
+# Chạy ở port khác
+uvicorn app.main:app --reload --port 8001
+
+# Chạy ở production mode
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+```
+
+**Sau khi chạy thành công:**
+
+- API sẽ chạy tại: `http://localhost:8000`
+- Swagger UI (API Docs): `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
+- OpenAPI JSON: `http://localhost:8000/openapi.json`
+
+### Bước 7: Test API
+
+**Sử dụng Swagger UI (Recommended):**
+1. Mở `http://localhost:8000/docs`
+2. Register user: `POST /api/v1/auth/register`
+3. Login: `POST /api/v1/auth/login` → lấy token
+4. Click "Authorize" → nhập `Bearer {token}`
+5. Test các endpoints khác
+
+**Chạy automated tests:**
+```bash
+# Chạy tất cả tests
+pytest
+
+# Chạy với coverage report
+pytest --cov=app tests/
+
+# Chạy test cụ thể
+pytest tests/test_auth_api.py
+```
 
 ## API Endpoints
 
