@@ -1,0 +1,1547 @@
+openapi: 3.0.3
+info:
+  title: Personal Finance Management API
+  description: A comprehensive REST API for managing personal finances including transactions, budgets, recurring transactions, and analytics
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@finance.app
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local development server
+  - url: https://api.finance.app/v1
+    description: Production server
+
+tags:
+  - name: Auth
+    description: Authentication and user management
+  - name: Transactions
+    description: Income, expense, and transfer transaction management
+  - name: Budgets
+    description: Budget management and tracking
+  - name: RecurringTransactions
+    description: Recurring transaction management
+  - name: Analytics
+    description: Financial analytics and reporting
+
+security:
+  - BearerAuth: []
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Register a new user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegisterRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Login user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/me:
+    get:
+      tags:
+        - Auth
+      summary: Get current user information
+      responses:
+        '200':
+          description: User information retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /wallets:
+    get:
+      tags:
+        - Auth
+      summary: Get all wallets for current user
+      responses:
+        '200':
+          description: List of wallets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WalletResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - Auth
+      summary: Create a new wallet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WalletCreateRequest'
+      responses:
+        '201':
+          description: Wallet created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalletResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /wallets/{wallet_id}:
+    get:
+      tags:
+        - Auth
+      summary: Get wallet by ID
+      parameters:
+        - name: wallet_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Wallet details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalletResponse'
+        '404':
+          description: Wallet not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags:
+        - Auth
+      summary: Update wallet
+      parameters:
+        - name: wallet_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WalletUpdateRequest'
+      responses:
+        '200':
+          description: Wallet updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalletResponse'
+        '404':
+          description: Wallet not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Auth
+      summary: Delete wallet
+      parameters:
+        - name: wallet_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Wallet deleted
+        '404':
+          description: Wallet not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /categories:
+    get:
+      tags:
+        - Transactions
+      summary: Get all categories
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CategoryResponse'
+    post:
+      tags:
+        - Transactions
+      summary: Create a new category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryCreateRequest'
+      responses:
+        '201':
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+
+  /transactions:
+    get:
+      tags:
+        - Transactions
+      summary: Get all transactions with filters
+      parameters:
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: category_id
+          in: query
+          schema:
+            type: integer
+        - name: wallet_id
+          in: query
+          schema:
+            type: integer
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [EXPENSE, INCOME, TRANSFER]
+        - name: min_amount
+          in: query
+          description: Minimum transaction amount for filtering
+          schema:
+            type: number
+            format: float
+            minimum: 0
+        - name: max_amount
+          in: query
+          description: Maximum transaction amount for filtering
+          schema:
+            type: number
+            format: float
+            minimum: 0
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionListResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - Transactions
+      summary: Create a new transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionCreateRequest'
+      responses:
+        '201':
+          description: Transaction created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /transactions/{transaction_id}:
+    get:
+      tags:
+        - Transactions
+      summary: Get transaction by ID
+      parameters:
+        - name: transaction_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Transaction details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '404':
+          description: Transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags:
+        - Transactions
+      summary: Update transaction
+      parameters:
+        - name: transaction_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionUpdateRequest'
+      responses:
+        '200':
+          description: Transaction updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '404':
+          description: Transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Transactions
+      summary: Delete transaction
+      parameters:
+        - name: transaction_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Transaction deleted
+        '404':
+          description: Transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /transactions/daily:
+    get:
+      tags:
+        - Transactions
+      summary: Get transactions grouped by day
+      parameters:
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Transactions grouped by day
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DailyTransactionGroup'
+
+  /transactions/weekly:
+    get:
+      tags:
+        - Transactions
+      summary: Get transactions grouped by week
+      parameters:
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Transactions grouped by week
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WeeklyTransactionGroup'
+
+  /transactions/monthly:
+    get:
+      tags:
+        - Transactions
+      summary: Get transactions grouped by month
+      parameters:
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Transactions grouped by month
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MonthlyTransactionGroup'
+
+  /budgets:
+    get:
+      tags:
+        - Budgets
+      summary: Get all budgets for current user
+      responses:
+        '200':
+          description: List of budgets with usage
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BudgetResponse'
+    post:
+      tags:
+        - Budgets
+      summary: Create a new budget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BudgetCreateRequest'
+      responses:
+        '201':
+          description: Budget created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /budgets/{budget_id}:
+    get:
+      tags:
+        - Budgets
+      summary: Get budget by ID
+      parameters:
+        - name: budget_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Budget details with usage
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetResponse'
+        '404':
+          description: Budget not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags:
+        - Budgets
+      summary: Update budget
+      parameters:
+        - name: budget_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BudgetUpdateRequest'
+      responses:
+        '200':
+          description: Budget updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetResponse'
+        '404':
+          description: Budget not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Budgets
+      summary: Delete budget
+      parameters:
+        - name: budget_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Budget deleted
+        '404':
+          description: Budget not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /budgets/summary:
+    get:
+      tags:
+        - Budgets
+      summary: Get budget summary for a period
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: query
+          schema:
+            type: integer
+        - name: quarter
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Budget summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetSummaryResponse'
+
+  /recurring-transactions:
+    get:
+      tags:
+        - RecurringTransactions
+      summary: Get all recurring transactions
+      responses:
+        '200':
+          description: List of recurring transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RecurringTransactionResponse'
+    post:
+      tags:
+        - RecurringTransactions
+      summary: Create a new recurring transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecurringTransactionCreateRequest'
+      responses:
+        '201':
+          description: Recurring transaction created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringTransactionResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /recurring-transactions/{recurring_id}:
+    get:
+      tags:
+        - RecurringTransactions
+      summary: Get recurring transaction by ID
+      parameters:
+        - name: recurring_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Recurring transaction details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringTransactionResponse'
+        '404':
+          description: Recurring transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags:
+        - RecurringTransactions
+      summary: Update recurring transaction
+      parameters:
+        - name: recurring_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecurringTransactionUpdateRequest'
+      responses:
+        '200':
+          description: Recurring transaction updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringTransactionResponse'
+        '404':
+          description: Recurring transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - RecurringTransactions
+      summary: Delete recurring transaction
+      parameters:
+        - name: recurring_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Recurring transaction deleted
+        '404':
+          description: Recurring transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /recurring-transactions/{recurring_id}/execute:
+    post:
+      tags:
+        - RecurringTransactions
+      summary: Manually execute a recurring transaction
+      description: Creates a new transaction based on the recurring template
+      parameters:
+        - name: recurring_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '201':
+          description: Transaction created from recurring template
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '404':
+          description: Recurring transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /analytics/spending-by-category:
+    get:
+      tags:
+        - Analytics
+      summary: Get spending breakdown by category
+      parameters:
+        - name: date_from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Spending by category
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CategorySpendingResponse'
+
+  /analytics/spending-trend:
+    get:
+      tags:
+        - Analytics
+      summary: Get spending trend over time
+      parameters:
+        - name: date_from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: group_by
+          in: query
+          schema:
+            type: string
+            enum: [day, week, month]
+            default: month
+      responses:
+        '200':
+          description: Spending trend
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SpendingTrendResponse'
+
+  /analytics/top-categories:
+    get:
+      tags:
+        - Analytics
+      summary: Get top spending categories
+      parameters:
+        - name: date_from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Top spending categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TopCategoryResponse'
+
+  /reports/transactions.csv:
+    get:
+      tags:
+        - Analytics
+      summary: Export transactions as CSV
+      parameters:
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /reports/transactions.pdf:
+    get:
+      tags:
+        - Analytics
+      summary: Export transactions as PDF
+      parameters:
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: PDF file
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+      required:
+        - detail
+
+    UserRegisterRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        full_name:
+          type: string
+      required:
+        - email
+        - password
+        - full_name
+
+    UserLoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        full_name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email
+        - full_name
+        - created_at
+
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          default: bearer
+        user:
+          $ref: '#/components/schemas/UserResponse'
+      required:
+        - access_token
+        - token_type
+        - user
+
+    WalletCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        currency:
+          type: string
+          default: VND
+        initial_balance:
+          type: number
+          format: double
+          default: 0
+      required:
+        - name
+
+    WalletUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        currency:
+          type: string
+
+    WalletResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        name:
+          type: string
+        currency:
+          type: string
+        balance:
+          type: number
+          format: double
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - user_id
+        - name
+        - currency
+        - balance
+        - created_at
+
+    CategoryCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [EXPENSE, INCOME]
+        icon:
+          type: string
+        color:
+          type: string
+      required:
+        - name
+        - type
+
+    CategoryResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+          enum: [EXPENSE, INCOME]
+        icon:
+          type: string
+        color:
+          type: string
+      required:
+        - id
+        - name
+        - type
+
+    TransactionCreateRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [EXPENSE, INCOME, TRANSFER]
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+          default: VND
+        date:
+          type: string
+          format: date-time
+        category_id:
+          type: integer
+        wallet_id:
+          type: integer
+        to_wallet_id:
+          type: integer
+          description: Required for TRANSFER type
+        description:
+          type: string
+      required:
+        - type
+        - amount
+        - date
+
+    TransactionUpdateRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [EXPENSE, INCOME, TRANSFER]
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+        date:
+          type: string
+          format: date-time
+        category_id:
+          type: integer
+        wallet_id:
+          type: integer
+        to_wallet_id:
+          type: integer
+        description:
+          type: string
+
+    TransactionResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        type:
+          type: string
+          enum: [EXPENSE, INCOME, TRANSFER]
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+        date:
+          type: string
+          format: date-time
+        category_id:
+          type: integer
+        category:
+          $ref: '#/components/schemas/CategoryResponse'
+        wallet_id:
+          type: integer
+        wallet:
+          $ref: '#/components/schemas/WalletResponse'
+        to_wallet_id:
+          type: integer
+        to_wallet:
+          $ref: '#/components/schemas/WalletResponse'
+        description:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - user_id
+        - type
+        - amount
+        - currency
+        - date
+        - created_at
+
+    TransactionListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionResponse'
+        total:
+          type: integer
+        page:
+          type: integer
+        size:
+          type: integer
+        pages:
+          type: integer
+      required:
+        - items
+        - total
+        - page
+        - size
+        - pages
+
+    DailyTransactionGroup:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        total_income:
+          type: number
+          format: double
+        total_expense:
+          type: number
+          format: double
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionResponse'
+
+    WeeklyTransactionGroup:
+      type: object
+      properties:
+        year:
+          type: integer
+        week:
+          type: integer
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        total_income:
+          type: number
+          format: double
+        total_expense:
+          type: number
+          format: double
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionResponse'
+
+    MonthlyTransactionGroup:
+      type: object
+      properties:
+        year:
+          type: integer
+        month:
+          type: integer
+        total_income:
+          type: number
+          format: double
+        total_expense:
+          type: number
+          format: double
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionResponse'
+
+    BudgetCreateRequest:
+      type: object
+      properties:
+        category_id:
+          type: integer
+        amount_limit:
+          type: number
+          format: double
+        period_type:
+          type: string
+          enum: [MONTHLY, WEEKLY, CUSTOM]
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+          description: Required for CUSTOM period type
+      required:
+        - category_id
+        - amount_limit
+        - period_type
+
+    BudgetUpdateRequest:
+      type: object
+      properties:
+        amount_limit:
+          type: number
+          format: double
+        period_type:
+          type: string
+          enum: [MONTHLY, WEEKLY, CUSTOM]
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+
+    BudgetResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        category_id:
+          type: integer
+        category:
+          $ref: '#/components/schemas/CategoryResponse'
+        amount_limit:
+          type: number
+          format: double
+        period_type:
+          type: string
+          enum: [MONTHLY, WEEKLY, CUSTOM]
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        used_amount:
+          type: number
+          format: double
+        remaining_amount:
+          type: number
+          format: double
+        usage_percentage:
+          type: number
+          format: double
+        is_near_limit:
+          type: boolean
+        is_exceeded:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - user_id
+        - category_id
+        - amount_limit
+        - period_type
+        - used_amount
+        - remaining_amount
+        - usage_percentage
+        - is_near_limit
+        - is_exceeded
+        - created_at
+
+    BudgetSummaryResponse:
+      type: object
+      properties:
+        period:
+          type: string
+        total_budget:
+          type: number
+          format: double
+        total_spent:
+          type: number
+          format: double
+        budgets:
+          type: array
+          items:
+            $ref: '#/components/schemas/BudgetResponse'
+
+    RecurringTransactionCreateRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [EXPENSE, INCOME, TRANSFER]
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+          default: VND
+        category_id:
+          type: integer
+        wallet_id:
+          type: integer
+        to_wallet_id:
+          type: integer
+        description:
+          type: string
+        frequency:
+          type: string
+          enum: [DAILY, WEEKLY, MONTHLY, YEARLY]
+        start_date:
+          type: string
+          format: date
+        is_active:
+          type: boolean
+          default: true
+      required:
+        - type
+        - amount
+        - frequency
+        - start_date
+
+    RecurringTransactionUpdateRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [EXPENSE, INCOME, TRANSFER]
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+        category_id:
+          type: integer
+        wallet_id:
+          type: integer
+        to_wallet_id:
+          type: integer
+        description:
+          type: string
+        frequency:
+          type: string
+          enum: [DAILY, WEEKLY, MONTHLY, YEARLY]
+        start_date:
+          type: string
+          format: date
+        is_active:
+          type: boolean
+
+    RecurringTransactionResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        type:
+          type: string
+          enum: [EXPENSE, INCOME, TRANSFER]
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+        category_id:
+          type: integer
+        category:
+          $ref: '#/components/schemas/CategoryResponse'
+        wallet_id:
+          type: integer
+        wallet:
+          $ref: '#/components/schemas/WalletResponse'
+        to_wallet_id:
+          type: integer
+        to_wallet:
+          $ref: '#/components/schemas/WalletResponse'
+        description:
+          type: string
+        frequency:
+          type: string
+          enum: [DAILY, WEEKLY, MONTHLY, YEARLY]
+        start_date:
+          type: string
+          format: date
+        next_run_date:
+          type: string
+          format: date
+        last_run_date:
+          type: string
+          format: date
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - user_id
+        - type
+        - amount
+        - currency
+        - frequency
+        - start_date
+        - next_run_date
+        - is_active
+        - created_at
+
+    CategorySpendingResponse:
+      type: object
+      properties:
+        category_id:
+          type: integer
+        category_name:
+          type: string
+        total_amount:
+          type: number
+          format: double
+        percentage:
+          type: number
+          format: double
+        transaction_count:
+          type: integer
+
+    SpendingTrendResponse:
+      type: object
+      properties:
+        period:
+          type: string
+        year:
+          type: integer
+        month:
+          type: integer
+        week:
+          type: integer
+        day:
+          type: string
+          format: date
+        total_expense:
+          type: number
+          format: double
+        total_income:
+          type: number
+          format: double
+
+    TopCategoryResponse:
+      type: object
+      properties:
+        category_id:
+          type: integer
+        category_name:
+          type: string
+        total_amount:
+          type: number
+          format: double
+        transaction_count:
+          type: integer
