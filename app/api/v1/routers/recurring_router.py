@@ -88,7 +88,7 @@ def delete_recurring_transaction(
     return None
 
 
-@router.post("/{recurring_id}/execute", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/{recurring_id}/execute", status_code=status.HTTP_200_OK)
 def execute_recurring_transaction(
     recurring_id: int,
     current_user: User = Depends(get_current_user),
@@ -96,4 +96,4 @@ def execute_recurring_transaction(
 ):
     """Manually execute a recurring transaction."""
     transaction = recurring_service.execute_recurring_transaction(db, recurring_id, current_user.id)
-    return transaction
+    return {"transaction_id": transaction.id, "amount": float(transaction.amount)}

@@ -252,6 +252,8 @@ class TransactionService:
                 "date": date_str,
                 "total_income": data["total_income"],
                 "total_expense": data["total_expense"],
+                "total_amount": data["total_income"] + data["total_expense"],
+                "transaction_count": len(data["transactions"]),
                 "transactions": data["transactions"]
             }
             for date_str, data in sorted(grouped.items(), reverse=True)
@@ -259,6 +261,7 @@ class TransactionService:
     
     def _group_transactions_by_week(self, transactions: List[Transaction]) -> List[dict]:
         """Group transactions by week."""
+        from datetime import timedelta
         grouped = defaultdict(lambda: {"total_income": 0.0, "total_expense": 0.0, "transactions": []})
         
         for transaction in transactions:
@@ -273,11 +276,20 @@ class TransactionService:
         
         result = []
         for (year, week), data in sorted(grouped.items(), reverse=True):
+            # Calculate start and end dates for the week
+            first_txn_date = min(t.date for t in data["transactions"])
+            start_of_week = first_txn_date - timedelta(days=first_txn_date.weekday())
+            end_of_week = start_of_week + timedelta(days=6)
+            
             result.append({
                 "year": year,
                 "week": week,
+                "start_date": start_of_week.date().isoformat(),
+                "end_date": end_of_week.date().isoformat(),
                 "total_income": data["total_income"],
                 "total_expense": data["total_expense"],
+                "total_amount": data["total_income"] + data["total_expense"],
+                "transaction_count": len(data["transactions"]),
                 "transactions": data["transactions"]
             })
         

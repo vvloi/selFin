@@ -184,7 +184,73 @@ class TransactionRepository:
         group_by: str = "month"
     ) -> List[dict]:
         """Get spending trend grouped by period."""
-        if group_by == "month":
+        if group_by == "day":
+            result = db.query(
+                func.date(Transaction.date).label("day"),
+                extract("year", Transaction.date).label("year"),
+                extract("month", Transaction.date).label("month"),
+                func.sum(
+                    case((Transaction.type == TransactionType.EXPENSE, Transaction.amount), else_=0)
+                ).label("total_expense"),
+                func.sum(
+                    case((Transaction.type == TransactionType.INCOME, Transaction.amount), else_=0)
+                ).label("total_income")
+            ).filter(
+                and_(
+                    Transaction.user_id == user_id,
+                    Transaction.date >= start_date,
+                    Transaction.date <= end_date
+                )
+            ).group_by(
+                func.date(Transaction.date)
+            ).order_by(
+                func.date(Transaction.date)
+            ).all()
+            
+            return [
+                {
+                    "day": str(r.day),
+                    "year": int(r.year),
+                    "month": int(r.month),
+                    "total_expense": float(r.total_expense or 0),
+                    "total_income": float(r.total_income or 0)
+                }
+                for r in result
+            ]
+        elif group_by == "week":
+            result = db.query(
+                extract("year", Transaction.date).label("year"),
+                extract("week", Transaction.date).label("week"),
+                func.sum(
+                    case((Transaction.type == TransactionType.EXPENSE, Transaction.amount), else_=0)
+                ).label("total_expense"),
+                func.sum(
+                    case((Transaction.type == TransactionType.INCOME, Transaction.amount), else_=0)
+                ).label("total_income")
+            ).filter(
+                and_(
+                    Transaction.user_id == user_id,
+                    Transaction.date >= start_date,
+                    Transaction.date <= end_date
+                )
+            ).group_by(
+                extract("year", Transaction.date),
+                extract("week", Transaction.date)
+            ).order_by(
+                extract("year", Transaction.date),
+                extract("week", Transaction.date)
+            ).all()
+            
+            return [
+                {
+                    "year": int(r.year),
+                    "week": int(r.week),
+                    "total_expense": float(r.total_expense or 0),
+                    "total_income": float(r.total_income or 0)
+                }
+                for r in result
+            ]
+        elif group_by == "month":
             result = db.query(
                 extract("year", Transaction.date).label("year"),
                 extract("month", Transaction.date).label("month"),

@@ -102,6 +102,8 @@ class DailyTransactionGroup(BaseModel):
     date: str
     total_income: float
     total_expense: float
+    total_amount: float = 0.0
+    transaction_count: int = 0
     transactions: list[TransactionResponse]
 
 
@@ -113,6 +115,8 @@ class WeeklyTransactionGroup(BaseModel):
     end_date: str
     total_income: float
     total_expense: float
+    total_amount: float = 0.0
+    transaction_count: int = 0
     transactions: list[TransactionResponse]
 
 

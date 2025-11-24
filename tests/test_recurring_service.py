@@ -239,7 +239,7 @@ def test_get_all_recurring_transactions(db_session, test_user, test_wallet, test
         test_category.id, test_wallet.id
     )
     
-    all_recurring = recurring_service.get_all_recurring_transactions(db_session, test_user.id)
+    all_recurring = recurring_service.get_all_recurring(db_session, test_user.id)
     
     assert len(all_recurring) >= 2
     assert all(r.user_id == test_user.id for r in all_recurring)

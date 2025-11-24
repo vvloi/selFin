@@ -42,6 +42,39 @@ def create_category(
     return category
 
 
+@router.get("/daily", response_model=list[DailyTransactionGroup])
+def get_daily_transactions(
+    date_from: Optional[datetime] = Query(None),
+    date_to: Optional[datetime] = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get transactions grouped by day."""
+    return transaction_service.get_daily_grouped_transactions(db, current_user.id, date_from, date_to)
+
+
+@router.get("/weekly", response_model=list[WeeklyTransactionGroup])
+def get_weekly_transactions(
+    date_from: Optional[datetime] = Query(None),
+    date_to: Optional[datetime] = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get transactions grouped by week."""
+    return transaction_service.get_weekly_grouped_transactions(db, current_user.id, date_from, date_to)
+
+
+@router.get("/monthly", response_model=list[MonthlyTransactionGroup])
+def get_monthly_transactions(
+    date_from: Optional[datetime] = Query(None),
+    date_to: Optional[datetime] = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get transactions grouped by month."""
+    return transaction_service.get_monthly_grouped_transactions(db, current_user.id, date_from, date_to)
+
+
 @router.get("", response_model=TransactionListResponse)
 def get_transactions(
     date_from: Optional[datetime] = Query(None),

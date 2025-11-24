@@ -37,17 +37,14 @@ def create_budget(
     return budget
 
 
-@router.get("/summary", response_model=BudgetSummaryResponse)
+@router.get("/summary", response_model=list[BudgetResponse])
 def get_budget_summary(
-    year: int = Query(...),
-    month: Optional[int] = Query(None),
-    quarter: Optional[int] = Query(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get budget summary for a period."""
-    summary = budget_service.get_budget_summary(db, current_user.id, year, month, quarter)
-    return summary
+    """Get all budgets with current usage information."""
+    budgets = budget_service.get_all_budgets(db, current_user.id)
+    return budgets
 
 
 @router.get("/{budget_id}", response_model=BudgetResponse)
