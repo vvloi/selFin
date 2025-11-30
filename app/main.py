@@ -14,7 +14,8 @@ from app.api.v1.routers import (
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
-    debug=settings.debug
+    debug=settings.debug,
+    root_path=settings.root_path
 )
 
 # CORS configuration
