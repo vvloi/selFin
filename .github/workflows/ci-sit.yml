@@ -9,7 +9,7 @@ env:
   IMAGE_NAME_RAW: ${{ github.repository }}
   ENVIRONMENT: sit
   GITOPS_REPO: VBMKTek/gitops-non-prod-application-workloads
-  GITOPS_APP_PATH: sit/selFin
+  GITOPS_APP_PATH: sit/selfin
 
 jobs:
   test:
