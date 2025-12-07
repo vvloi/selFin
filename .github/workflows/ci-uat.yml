@@ -158,8 +158,8 @@ jobs:
       run: |
         cd gitops/${{ env.GITOPS_APP_PATH }}
         
-        # Update image tag in deployment.yaml
-        sed -i "s|image: ghcr.io/vbmktek/selfin:.*|image: ghcr.io/vbmktek/selfin:${{ needs.build-and-push.outputs.version_tag }}|g" 04-deployment.yaml
+        # Update image tag in deployment.yaml (use package name from build step)
+        sed -i "s|image: ghcr.io/.*/selfin:.*|image: ${{ needs.build-and-push.outputs.full_image }}|g" 04-deployment.yaml
         
         # Update deployment timestamp
         TIMESTAMP=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
