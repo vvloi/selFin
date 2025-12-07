@@ -21,7 +21,7 @@ class TestBudgetAPI:
         
         # Act
         response = test_client.post(
-            "/api/v1/budgets", json=payload, headers=auth_headers
+            "/v1/budgets", json=payload, headers=auth_headers
         )
         
         # Assert
@@ -66,7 +66,7 @@ class TestBudgetAPI:
         
         # Act - Get budget summary
         response = test_client.get(
-            "/api/v1/budgets/summary",
+            "/v1/budgets/summary",
             headers=auth_headers
         )
         
@@ -116,7 +116,7 @@ class TestBudgetAPI:
         
         # Act - Get budget summary
         response = test_client.get(
-            "/api/v1/budgets/summary",
+            "/v1/budgets/summary",
             headers=auth_headers
         )
         
@@ -165,7 +165,7 @@ class TestBudgetAPI:
         
         # Act - Get budget summary
         response = test_client.get(
-            "/api/v1/budgets/summary",
+            "/v1/budgets/summary",
             headers=auth_headers
         )
         
@@ -195,7 +195,7 @@ class TestBudgetAPI:
         
         # Act
         response = test_client.post(
-            "/api/v1/budgets", json=payload, headers=auth_headers
+            "/v1/budgets", json=payload, headers=auth_headers
         )
         
         # Assert
@@ -222,7 +222,7 @@ class TestBudgetAPI:
         
         # Act
         response = test_client.post(
-            "/api/v1/budgets", json=payload, headers=auth_headers
+            "/v1/budgets", json=payload, headers=auth_headers
         )
         
         # Assert
@@ -258,7 +258,7 @@ class TestBudgetAPI:
         db_session.commit()
         
         # Act
-        response = test_client.get("/api/v1/budgets", headers=auth_headers)
+        response = test_client.get("/v1/budgets", headers=auth_headers)
         
         # Assert
         assert response.status_code == 200

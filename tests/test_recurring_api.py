@@ -29,7 +29,7 @@ class TestRecurringTransactionAPI:
         
         # Act
         response = test_client.post(
-            "/api/v1/recurring-transactions", json=payload, headers=auth_headers
+            "/v1/recurring-transactions", json=payload, headers=auth_headers
         )
         
         # Assert
@@ -61,7 +61,7 @@ class TestRecurringTransactionAPI:
         
         # Act
         response = test_client.post(
-            "/api/v1/recurring-transactions", json=payload, headers=auth_headers
+            "/v1/recurring-transactions", json=payload, headers=auth_headers
         )
         
         # Assert
@@ -91,7 +91,7 @@ class TestRecurringTransactionAPI:
         
         # Act
         response = test_client.post(
-            "/api/v1/recurring-transactions", json=payload, headers=auth_headers
+            "/v1/recurring-transactions", json=payload, headers=auth_headers
         )
         
         # Assert
@@ -121,7 +121,7 @@ class TestRecurringTransactionAPI:
         
         # Act
         response = test_client.post(
-            "/api/v1/recurring-transactions", json=payload, headers=auth_headers
+            "/v1/recurring-transactions", json=payload, headers=auth_headers
         )
         
         # Assert
@@ -159,7 +159,7 @@ class TestRecurringTransactionAPI:
         
         # Act - Execute the recurring transaction
         response = test_client.post(
-            f"/api/v1/recurring-transactions/{recurring.id}/execute",
+            f"/v1/recurring-transactions/{recurring.id}/execute",
             headers=auth_headers
         )
         
@@ -208,7 +208,7 @@ class TestRecurringTransactionAPI:
         
         # Act - Deactivate it
         response = test_client.patch(
-            f"/api/v1/recurring-transactions/{recurring.id}",
+            f"/v1/recurring-transactions/{recurring.id}",
             json={"is_active": False},
             headers=auth_headers
         )
@@ -257,7 +257,7 @@ class TestRecurringTransactionAPI:
         
         # Act
         response = test_client.get(
-            "/api/v1/recurring-transactions", headers=auth_headers
+            "/v1/recurring-transactions", headers=auth_headers
         )
         
         # Assert
@@ -286,7 +286,7 @@ class TestRecurringTransactionAPI:
         
         # Act
         response = test_client.post(
-            "/api/v1/recurring-transactions", json=payload, headers=auth_headers
+            "/v1/recurring-transactions", json=payload, headers=auth_headers
         )
         
         # Assert

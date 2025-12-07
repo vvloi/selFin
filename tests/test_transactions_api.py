@@ -25,7 +25,7 @@ class TestTransactionAPI:
         
         # Act
         response = test_client.post(
-            "/api/v1/transactions", json=payload, headers=auth_headers
+            "/v1/transactions", json=payload, headers=auth_headers
         )
         
         # Assert
@@ -75,7 +75,7 @@ class TestTransactionAPI:
         
         # Act - Filter for middle period
         response = test_client.get(
-            "/api/v1/transactions",
+            "/v1/transactions",
             params={
                 "date_from": (base_date + timedelta(days=5)).isoformat(),
                 "date_to": (base_date + timedelta(days=15)).isoformat()
@@ -122,7 +122,7 @@ class TestTransactionAPI:
         
         # Act - Filter by Food category
         response = test_client.get(
-            "/api/v1/transactions",
+            "/v1/transactions",
             params={"category_id": test_categories[0].id},
             headers=auth_headers
         )
@@ -172,7 +172,7 @@ class TestTransactionAPI:
         
         # Act - Filter for amounts between 100k and 300k
         response = test_client.get(
-            "/api/v1/transactions",
+            "/v1/transactions",
             params={"min_amount": 100000, "max_amount": 300000},
             headers=auth_headers
         )
@@ -236,7 +236,7 @@ class TestTransactionAPI:
         
         # Act - Apply all filters at once
         response = test_client.get(
-            "/api/v1/transactions",
+            "/v1/transactions",
             params={
                 "date_from": base_date.isoformat(),
                 "date_to": (base_date + timedelta(days=30)).isoformat(),
@@ -286,7 +286,7 @@ class TestTransactionAPI:
         
         # Act
         response = test_client.get(
-            "/api/v1/transactions/daily",
+            "/v1/transactions/daily",
             headers=auth_headers
         )
         
@@ -321,7 +321,7 @@ class TestTransactionAPI:
         
         # Act - Get first page with size 10
         response = test_client.get(
-            "/api/v1/transactions",
+            "/v1/transactions",
             params={"page": 1, "size": 10},
             headers=auth_headers
         )

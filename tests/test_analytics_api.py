@@ -53,7 +53,7 @@ class TestAnalyticsAPI:
         
         # Act
         response = test_client.get(
-            "/api/v1/analytics/spending-by-category",
+            "/v1/analytics/spending-by-category",
             params={
                 "date_from": base_date.isoformat(),
                 "date_to": (base_date + timedelta(days=10)).isoformat()
@@ -126,7 +126,7 @@ class TestAnalyticsAPI:
         
         # Act
         response = test_client.get(
-            "/api/v1/analytics/spending-trend",
+            "/v1/analytics/spending-trend",
             params={
                 "date_from": datetime(2024, 1, 1).isoformat(),
                 "date_to": datetime(2024, 2, 28).isoformat(),
@@ -175,7 +175,7 @@ class TestAnalyticsAPI:
         
         # Act
         response = test_client.get(
-            "/api/v1/analytics/spending-trend",
+            "/v1/analytics/spending-trend",
             params={
                 "date_from": base_date.isoformat(),
                 "date_to": (base_date + timedelta(days=10)).isoformat(),
@@ -252,7 +252,7 @@ class TestAnalyticsAPI:
         
         # Act - Get top 2 categories
         response = test_client.get(
-            "/api/v1/analytics/top-categories",
+            "/v1/analytics/top-categories",
             params={
                 "date_from": base_date.isoformat(),
                 "date_to": (base_date + timedelta(days=10)).isoformat(),
@@ -308,7 +308,7 @@ class TestAnalyticsAPI:
         
         # Act
         response = test_client.get(
-            "/api/v1/reports/transactions.csv",
+            "/v1/reports/transactions.csv",
             params={
                 "date_from": base_date.isoformat(),
                 "date_to": (base_date + timedelta(days=5)).isoformat()
@@ -357,7 +357,7 @@ class TestAnalyticsAPI:
         
         # Act
         response = test_client.get(
-            "/api/v1/reports/transactions.pdf",
+            "/v1/reports/transactions.pdf",
             headers=auth_headers
         )
         
@@ -411,7 +411,7 @@ class TestAnalyticsAPI:
         
         # Act
         response = test_client.get(
-            "/api/v1/transactions/weekly",
+            "/v1/transactions/weekly",
             params={
                 "date_from": week1_start.isoformat(),
                 "date_to": (week2_start + timedelta(days=6)).isoformat()

@@ -17,7 +17,7 @@ class TestAuthAPI:
         }
         
         # Act
-        response = test_client.post("/api/v1/auth/register", json=payload)
+        response = test_client.post("/v1/auth/register", json=payload)
         
         # Assert
         assert response.status_code == 201
@@ -37,7 +37,7 @@ class TestAuthAPI:
         }
         
         # Act
-        response = test_client.post("/api/v1/auth/register", json=payload)
+        response = test_client.post("/v1/auth/register", json=payload)
         
         # Assert
         assert response.status_code == 409
@@ -53,7 +53,7 @@ class TestAuthAPI:
         }
         
         # Act
-        response = test_client.post("/api/v1/auth/register", json=payload)
+        response = test_client.post("/v1/auth/register", json=payload)
         
         # Assert
         assert response.status_code == 400
@@ -68,7 +68,7 @@ class TestAuthAPI:
         }
         
         # Act
-        response = test_client.post("/api/v1/auth/login", json=payload)
+        response = test_client.post("/v1/auth/login", json=payload)
         
         # Assert
         assert response.status_code == 200
@@ -86,7 +86,7 @@ class TestAuthAPI:
         }
         
         # Act
-        response = test_client.post("/api/v1/auth/login", json=payload)
+        response = test_client.post("/v1/auth/login", json=payload)
         
         # Assert
         assert response.status_code == 401
@@ -101,7 +101,7 @@ class TestAuthAPI:
         }
         
         # Act
-        response = test_client.post("/api/v1/auth/login", json=payload)
+        response = test_client.post("/v1/auth/login", json=payload)
         
         # Assert
         assert response.status_code == 401
@@ -109,7 +109,7 @@ class TestAuthAPI:
     def test_get_current_user_without_token(self, test_client: TestClient):
         """Test accessing protected endpoint without token returns 401 or 403."""
         # Act
-        response = test_client.get("/api/v1/auth/me")
+        response = test_client.get("/v1/auth/me")
         
         # Assert
         assert response.status_code in [401, 403]
@@ -119,7 +119,7 @@ class TestAuthAPI:
     ):
         """Test accessing protected endpoint with valid token succeeds."""
         # Act
-        response = test_client.get("/api/v1/auth/me", headers=auth_headers)
+        response = test_client.get("/v1/auth/me", headers=auth_headers)
         
         # Assert
         assert response.status_code == 200
@@ -133,7 +133,7 @@ class TestAuthAPI:
         headers = {"Authorization": "Bearer invalid_token_here"}
         
         # Act
-        response = test_client.get("/api/v1/auth/me", headers=headers)
+        response = test_client.get("/v1/auth/me", headers=headers)
         
         # Assert
         assert response.status_code == 401
