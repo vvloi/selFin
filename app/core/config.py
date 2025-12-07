@@ -1,6 +1,7 @@
 """Application configuration settings."""
 from pydantic_settings import BaseSettings
 from typing import Optional
+import os
 
 
 class Settings(BaseSettings):
@@ -27,7 +28,38 @@ class Settings(BaseSettings):
     bcrypt_rounds: int = 12
     
     # CORS
-    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+    # You can set CORS_ORIGINS in the .env file as a comma-separated list,
+    # or set it to '*' to allow all origins (useful for local development).
+    cors_origins_env: Optional[str] = None
+
+    # Default origins used when no env var provided
+    _default_cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+
+    @property
+    def cors_origins(self) -> list[str]:
+        """Return parsed CORS origins from env or defaults.
+
+        - If `CORS_ORIGINS` is set to `*`, returns `['*']` to allow all origins.
+        - If `CORS_ORIGINS` is a comma-separated list, splits and strips values.
+        - Otherwise returns the default list.
+        """
+        # prefer explicit setting in pydantic (.env -> CORS_ORIGINS_ENV)
+        val = None
+        if self.cors_origins_env:
+            val = self.cors_origins_env.strip()
+        # fallback to environment variable name CORS_ORIGINS (common pattern)
+        if not val:
+            env_val = os.getenv("CORS_ORIGINS")
+            if env_val:
+                val = env_val.strip()
+        if val:
+            if val == "*":
+                return ["*"]
+            # split by comma and strip whitespace, ignore empty entries
+            parts = [p.strip() for p in val.split(",") if p.strip()]
+            if parts:
+                return parts
+        return list(self._default_cors_origins)
     
     # Pagination
     default_page_size: int = 50
