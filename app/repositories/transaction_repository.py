@@ -2,7 +2,7 @@
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, or_, func, extract, case
 from typing import List, Optional, Tuple
-from datetime import datetime, date
+from datetime import datetime, date, time
 from decimal import Decimal
 from app.models.transaction import Transaction, TransactionType
 
@@ -114,13 +114,17 @@ class TransactionRepository:
         end_date: date
     ) -> Decimal:
         """Get total amount spent for a category within a period."""
+        # Convert date to datetime for proper comparison with DateTime column
+        start_datetime = datetime.combine(start_date, time.min)
+        end_datetime = datetime.combine(end_date, time.max)
+        
         result = db.query(func.sum(Transaction.amount)).filter(
             and_(
                 Transaction.user_id == user_id,
                 Transaction.category_id == category_id,
                 Transaction.type == TransactionType.EXPENSE,
-                Transaction.date >= start_date,
-                Transaction.date <= end_date
+                Transaction.date >= start_datetime,
+                Transaction.date <= end_datetime
             )
         ).scalar()
         

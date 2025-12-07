@@ -6,6 +6,9 @@ import os
 
 class Settings(BaseSettings):
     """Application settings."""
+
+    # API Root Path (for reverse proxy like Kong)
+    root_path: str = ""
     
     # Application
     app_name: str = "Personal Finance API"

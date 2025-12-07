@@ -1,0 +1,278 @@
+name: CI/CD - SIT Environment
+
+on:
+  push:
+    branches: main
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_RAW: ${{ github.repository }}
+  ENVIRONMENT: sit
+  GITOPS_REPO: VBMKTek/gitops-non-prod-application-workloads
+  GITOPS_APP_PATH: sit/selFin
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: Run Tests
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+      
+    - name: Run tests
+      run: |
+        pytest --junitxml=test-results.xml
+      
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-sit
+        path: test-results.xml
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs: test
+    name: Build and Push Docker Image
+    
+    outputs:
+      image_name: ${{ steps.image-name.outputs.image_name }}
+      version_tag: ${{ steps.version.outputs.version_tag }}
+      full_image: ${{ steps.version.outputs.full_image }}
+    
+    permissions:
+      contents: read
+      packages: write
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set lowercase image name
+      id: image-name
+      run: |
+        IMAGE_NAME=$(echo "${{ env.IMAGE_NAME_RAW }}" | tr '[:upper:]' '[:lower:]')
+        PACKAGE_NAME=$(echo "${IMAGE_NAME}" | cut -d'/' -f2)
+        echo "image_name=${IMAGE_NAME}" >> $GITHUB_OUTPUT
+        echo "package_name=${PACKAGE_NAME}" >> $GITHUB_OUTPUT
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHCR_PAT }}
+      
+    - name: Generate version tag
+      id: version
+      run: |
+        TIMESTAMP=$(date +%Y%m%d.%H%M)
+        SHORT_SHA=${GITHUB_SHA:0:8}
+        VERSION_TAG="sit-${TIMESTAMP}-${SHORT_SHA}"
+        FULL_IMAGE="${{ env.REGISTRY }}/${{ steps.image-name.outputs.image_name }}:${VERSION_TAG}"
+        echo "version_tag=${VERSION_TAG}" >> $GITHUB_OUTPUT
+        echo "timestamp=${TIMESTAMP}" >> $GITHUB_OUTPUT
+        echo "full_image=${FULL_IMAGE}" >> $GITHUB_OUTPUT
+        
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: ${{ env.REGISTRY }}/${{ steps.image-name.outputs.image_name }}:${{ steps.version.outputs.version_tag }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Build Summary
+      if: success()
+      run: |
+        echo "## 🚀 Build & Push Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📦 Docker Image Information" >> $GITHUB_STEP_SUMMARY
+        echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+        echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+        echo "| **Environment** | SIT |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Registry** | \`${{ env.REGISTRY }}\` |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Repository** | \`${{ steps.image-name.outputs.image_name }}\` |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Version Tag** | \`${{ steps.version.outputs.version_tag }}\` |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Full Image URL** | \`${{ steps.version.outputs.full_image }}\` |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Build Time** | ${{ steps.version.outputs.timestamp }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Source Commit** | [\`${GITHUB_SHA:0:8}\`](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🎯 Quick Access Links" >> $GITHUB_STEP_SUMMARY
+        echo "- 📋 [View Image on GHCR](https://github.com/orgs/${{ github.repository_owner }}/packages/container/${{ steps.image-name.outputs.package_name }})" >> $GITHUB_STEP_SUMMARY
+        echo "- 🔍 [Pull Image Command](#pull-command)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📥 Pull Command {#pull-command}" >> $GITHUB_STEP_SUMMARY
+        echo '```bash' >> $GITHUB_STEP_SUMMARY
+        echo "docker pull ${{ steps.version.outputs.full_image }}" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        
+    - name: Cleanup old images
+      run: |
+        echo "🧹 Cleaning up old SIT images..."
+        # Keep only the latest 5 SIT images
+        PACKAGE_NAME=$(echo "${{ steps.image-name.outputs.image_name }}" | cut -d'/' -f2)
+        
+        # Get all SIT tags and sort by creation date, keep only latest 5
+        echo "Fetching SIT image versions for cleanup..."
+        gh api --paginate \
+          -H "Accept: application/vnd.github.v3+json" \
+          -H "Authorization: Bearer ${{ secrets.GHCR_PAT }}" \
+          "/orgs/${{ github.repository_owner }}/packages/container/${PACKAGE_NAME}/versions" \
+          --jq '.[] | select(.metadata.container.tags[]? | test("^sit-")) | {id: .id, tags: .metadata.container.tags, created_at: .created_at}' \
+          | jq -s 'sort_by(.created_at) | reverse | .[5:]' \
+          | jq -r '.[].id' \
+          | while read version_id; do
+              if [ ! -z "$version_id" ]; then
+                echo "Deleting old SIT image version: $version_id"
+                gh api \
+                  --method DELETE \
+                  -H "Accept: application/vnd.github.v3+json" \
+                  -H "Authorization: Bearer ${{ secrets.GHCR_PAT }}" \
+                  "/orgs/${{ github.repository_owner }}/packages/container/${PACKAGE_NAME}/versions/$version_id" || echo "Failed to delete version $version_id"
+              fi
+            done
+        echo "✅ Cleanup completed"
+      env:
+        GH_TOKEN: ${{ secrets.GHCR_PAT }}
+          
+    - name: Image summary
+      run: |
+        echo "## 🚀 SIT Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+        echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Environment | SIT |" >> $GITHUB_STEP_SUMMARY
+        echo "| Image | \`${{ env.REGISTRY }}/${{ steps.image-name.outputs.image_name }}:${{ steps.version.outputs.version_tag }}\` |" >> $GITHUB_STEP_SUMMARY
+        echo "| Build Time | ${{ steps.version.outputs.timestamp }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Commit | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
+
+  update-gitops:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    name: Update GitOps Repository
+    
+    permissions:
+      contents: read
+      
+    steps:
+    - name: Checkout GitOps repository
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ env.GITOPS_REPO }}
+        token: ${{ secrets.GITOPS_PAT }}
+        path: gitops
+        
+    - name: Update image tag in deployment.yaml
+      run: |
+        cd gitops/${{ env.GITOPS_APP_PATH }}
+        
+        # Update image tag in deployment.yaml
+        sed -i "s|image: ghcr.io/vbmktek/selfin:.*|image: ghcr.io/vbmktek/selfin:${{ needs.build-and-push.outputs.version_tag }}|g" 04-deployment.yaml
+        
+        # Update deployment timestamp
+        TIMESTAMP=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+        sed -i "s|deployment.timestamp: \".*\"|deployment.timestamp: \"${TIMESTAMP}\"|g" 04-deployment.yaml
+        
+        # Verify the change
+        echo "Updated deployment.yaml:"
+        grep -A 2 -B 2 "image: ghcr.io" 04-deployment.yaml
+        
+    - name: Commit and push changes
+      run: |
+        cd gitops
+        
+        # Configure git
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # Check if there are changes
+        if git diff --quiet; then
+          echo "No changes to commit"
+          exit 0
+        fi
+        
+        # Commit and push
+        git add ${{ env.GITOPS_APP_PATH }}/04-deployment.yaml
+        git commit -m "🚀 Update selFin SIT image to ${{ needs.build-and-push.outputs.version_tag }}
+
+        - Image: ${{ needs.build-and-push.outputs.full_image }}
+        - Source commit: ${{ github.sha }}
+        - Build time: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+        
+        Auto-updated by GitHub Actions from ${{ github.repository }}@${{ github.sha }}"
+        
+        git push origin main
+        
+    - name: GitOps Update Summary
+      run: |
+        echo "## 🔄 GitOps Update Summary" >> $GITHUB_STEP_SUMMARY
+        echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+        echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Repository | [${{ env.GITOPS_REPO }}](https://github.com/${{ env.GITOPS_REPO }}) |" >> $GITHUB_STEP_SUMMARY
+        echo "| Path | \`${{ env.GITOPS_APP_PATH }}/04-deployment.yaml\` |" >> $GITHUB_STEP_SUMMARY
+        echo "| New Image Tag | \`${{ needs.build-and-push.outputs.version_tag }}\` |" >> $GITHUB_STEP_SUMMARY
+        echo "| Full Image | \`${{ needs.build-and-push.outputs.full_image }}\` |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "✅ ArgoCD will automatically detect and deploy the new image within 3 minutes." >> $GITHUB_STEP_SUMMARY
+
+  deploy-notification:
+    runs-on: ubuntu-latest
+    needs: [build-and-push, update-gitops]
+    name: Final Deployment Summary
+    if: always()
+    
+    steps:
+    - name: Final Deployment Summary
+      run: |
+        echo "## 🎯 SIT Deployment Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [[ "${{ needs.build-and-push.result }}" == "success" && "${{ needs.update-gitops.result }}" == "success" ]]; then
+          echo "### ✅ Pipeline Status: SUCCESS" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Step | Status | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🧪 Tests | ✅ Passed | Unit tests completed successfully |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🐳 Docker Build & Push | ✅ Success | Image pushed to GHCR |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔄 GitOps Update | ✅ Success | Deployment manifests updated |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Deployed Image" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "${{ needs.build-and-push.outputs.full_image }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📡 Monitoring & Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "- 🤖 ArgoCD will automatically deploy within 3 minutes" >> $GITHUB_STEP_SUMMARY
+          echo "- 📊 [Monitor deployment progress](https://jupiterpro.online/argocd)" >> $GITHUB_STEP_SUMMARY
+          echo "- 📦 [View image on GHCR](https://github.com/orgs/${{ github.repository_owner }}/packages/container/selfin)" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔍 Verify application health after deployment" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "### ❌ Pipeline Status: FAILED" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Step | Status | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🐳 Build & Push | ${{ needs.build-and-push.result == 'success' && '✅ Success' || '❌ Failed' }} | ${{ needs.build-and-push.result == 'success' && 'Image built and pushed' || 'Check build logs for errors' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔄 GitOps Update | ${{ needs.update-gitops.result == 'success' && '✅ Success' || '❌ Failed' }} | ${{ needs.update-gitops.result == 'success' && 'Deployment updated' || 'Check GitOps update logs' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔧 Troubleshooting" >> $GITHUB_STEP_SUMMARY
+          echo "- Review the failed step logs above" >> $GITHUB_STEP_SUMMARY
+          echo "- Check repository secrets and permissions" >> $GITHUB_STEP_SUMMARY
+          echo "- Verify GHCR_PAT token is valid" >> $GITHUB_STEP_SUMMARY
+        fi
