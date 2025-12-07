@@ -28,13 +28,13 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(auth_router.router, prefix="/api/v1")
-app.include_router(auth_router.wallet_router, prefix="/api/v1")
-app.include_router(transactions_router.category_router, prefix="/api/v1")
-app.include_router(transactions_router.router, prefix="/api/v1")
-app.include_router(budgets_router.router, prefix="/api/v1")
-app.include_router(recurring_router.router, prefix="/api/v1")
-app.include_router(analytics_router.router, prefix="/api/v1")
+app.include_router(auth_router.router, prefix="/v1")
+app.include_router(auth_router.wallet_router, prefix="/v1")
+app.include_router(transactions_router.category_router, prefix="/v1")
+app.include_router(transactions_router.router, prefix="/v1")
+app.include_router(budgets_router.router, prefix="/v1")
+app.include_router(recurring_router.router, prefix="/v1")
+app.include_router(analytics_router.router, prefix="/v1")
 
 
 @app.get("/")
