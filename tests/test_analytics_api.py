@@ -322,7 +322,7 @@ class TestAnalyticsAPI:
         assert "attachment" in response.headers["content-disposition"]
         
         # Parse CSV content
-        csv_content = response.text
+        csv_content = response.content.decode("utf-8-sig")
         csv_reader = csv.reader(io.StringIO(csv_content))
         rows = list(csv_reader)
         
