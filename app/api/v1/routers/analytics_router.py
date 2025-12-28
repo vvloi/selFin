@@ -73,6 +73,7 @@ def export_transactions_csv(
     )
     
     output = io.StringIO()
+    output.write('\ufeff')
     writer = csv.writer(output)
     
     writer.writerow([
