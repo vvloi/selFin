@@ -17,6 +17,7 @@ class BudgetCreateRequest(BaseModel):
     """Budget creation request."""
     category_id: int
     amount_limit: float = Field(gt=0)
+    alert_threshold: float = Field(default=80.0, ge=0, le=100)  # Warning threshold percentage
     period_type: PeriodType
     start_date: Optional[date] = None
     end_date: Optional[date] = None
@@ -25,6 +26,7 @@ class BudgetCreateRequest(BaseModel):
 class BudgetUpdateRequest(BaseModel):
     """Budget update request."""
     amount_limit: Optional[float] = Field(None, gt=0)
+    alert_threshold: Optional[float] = Field(None, ge=0, le=100)  # Warning threshold percentage
     period_type: Optional[PeriodType] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
@@ -37,6 +39,7 @@ class BudgetResponse(BaseModel):
     category_id: int
     category: Optional[CategoryResponse] = None
     amount_limit: float
+    alert_threshold: float  # User-defined warning threshold percentage
     period_type: str
     start_date: Optional[date] = None
     end_date: Optional[date] = None

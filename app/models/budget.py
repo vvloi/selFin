@@ -22,6 +22,7 @@ class Budget(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=False, index=True)
     amount_limit = Column(Numeric(precision=15, scale=2), nullable=False)
+    alert_threshold = Column(Numeric(precision=5, scale=2), nullable=False, default=80.0)  # User-defined warning threshold (%)
     period_type = Column(SQLEnum(PeriodType), nullable=False)
     start_date = Column(Date)
     end_date = Column(Date)

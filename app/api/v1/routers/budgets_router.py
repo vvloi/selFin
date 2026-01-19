@@ -32,7 +32,8 @@ def create_budget(
     
     budget = budget_service.create_budget(
         db, current_user.id, request.category_id, request.amount_limit,
-        ModelPeriodType(request.period_type.value), request.start_date, request.end_date
+        ModelPeriodType(request.period_type.value), request.alert_threshold,
+        request.start_date, request.end_date
     )
     return budget
 
@@ -72,7 +73,7 @@ def update_budget(
     
     budget = budget_service.update_budget(
         db, budget_id, current_user.id, request.amount_limit,
-        model_period, request.start_date, request.end_date
+        request.alert_threshold, model_period, request.start_date, request.end_date
     )
     return budget
 

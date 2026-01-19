@@ -100,6 +100,7 @@ def upgrade() -> None:
         sa.Column('user_id', sa.Integer(), nullable=False),
         sa.Column('category_id', sa.Integer(), nullable=False),
         sa.Column('amount_limit', sa.Numeric(precision=15, scale=2), nullable=False),
+        sa.Column('alert_threshold', sa.Numeric(precision=5, scale=2), server_default='80.0', nullable=False),
         sa.Column('period_type', sa.String(20), nullable=False),
         sa.Column('start_date', sa.Date(), nullable=True),
         sa.Column('end_date', sa.Date(), nullable=True),

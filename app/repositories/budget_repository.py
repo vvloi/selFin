@@ -16,6 +16,7 @@ class BudgetRepository:
         category_id: int,
         amount_limit: Decimal,
         period_type: PeriodType,
+        alert_threshold: Decimal = Decimal("80.0"),
         start_date: Optional[date] = None,
         end_date: Optional[date] = None
     ) -> Budget:
@@ -24,6 +25,7 @@ class BudgetRepository:
             user_id=user_id,
             category_id=category_id,
             amount_limit=amount_limit,
+            alert_threshold=alert_threshold,
             period_type=period_type,
             start_date=start_date,
             end_date=end_date

@@ -21,6 +21,7 @@ class BudgetService:
         category_id: int,
         amount_limit: float,
         period_type: PeriodType,
+        alert_threshold: float = 80.0,
         start_date: date = None,
         end_date: date = None
     ) -> Budget:
@@ -51,7 +52,7 @@ class BudgetService:
         
         budget = budget_repository.create(
             db, user_id, category_id, Decimal(str(amount_limit)),
-            period_type, start_date, end_date
+            period_type, Decimal(str(alert_threshold)), start_date, end_date
         )
         
         return self._enrich_budget_with_usage(db, budget)
@@ -62,6 +63,7 @@ class BudgetService:
         budget_id: int,
         user_id: int,
         amount_limit: float = None,
+        alert_threshold: float = None,
         period_type: PeriodType = None,
         start_date: date = None,
         end_date: date = None
@@ -77,6 +79,8 @@ class BudgetService:
         
         if amount_limit is not None:
             budget.amount_limit = Decimal(str(amount_limit))
+        if alert_threshold is not None:
+            budget.alert_threshold = Decimal(str(alert_threshold))
         if period_type is not None:
             budget.period_type = period_type
         if start_date is not None:
@@ -154,7 +158,9 @@ class BudgetService:
         remaining = limit_float - used_amount_float
         usage_percentage = (used_amount_float / limit_float * 100) if limit_float > 0 else 0
         
-        is_near_limit = usage_percentage >= (settings.budget_near_limit_threshold * 100)
+        # Use budget's own alert_threshold instead of global config
+        threshold = float(budget.alert_threshold) if budget.alert_threshold else (settings.budget_near_limit_threshold * 100)
+        is_near_limit = usage_percentage >= threshold
         is_exceeded = usage_percentage >= (settings.budget_exceeded_threshold * 100)
         
         setattr(budget, 'used_amount', used_amount_float)
